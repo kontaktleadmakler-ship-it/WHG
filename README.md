@@ -28,6 +28,15 @@ Die API dient gleichzeitig als Backend für die mitgelieferte Web-UI und für
 mobile Clients (z.B. eine native App oder ein Shortcut, das dieselben
 Endpunkte nutzt).
 
+## Deployment auf Render
+
+- **Language/Runtime:** Python 3 (Version wird über `runtime.txt` im Projekt-Root auf 3.11 fixiert — wichtig, da neuere Python-Versionen wie 3.14 noch kein vorgefertigtes `pydantic-core`-Wheel haben und der Build sonst mit einem Rust/Cargo-Fehler abbricht)
+- **Root Directory:** leer lassen (Repo-Root, dort liegt `requirements.txt`)
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Environment Variables:** im Render-Dashboard unter „Environment“ eintragen (ersetzt die lokale `.env`, die wird nicht aus dem Repo gelesen) — siehe `.env.example` für die möglichen Variablen.
+- **Achtung SQLite:** Auf Render ist das Dateisystem ohne bezahlte Persistent Disk nicht dauerhaft — bei jedem Redeploy ist die `wohnungssuche.db` weg. Für Dauerbetrieb `DATABASE_URL` auf eine Render-Postgres-Instanz zeigen lassen (Code ist über SQLAlchemy bereits datenbankagnostisch), dafür zusätzlich `psycopg2-binary` in `requirements.txt` aufnehmen.
+
 ## Setup
 
 ```bash
