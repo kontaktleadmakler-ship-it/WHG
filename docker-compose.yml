@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: immo
+      POSTGRES_PASSWORD: immo_secret
+      POSTGRES_DB: immo_finder
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+
+  # Standardweg: liest offizielle Suchauftrags-/Alert-Mails der Portale aus
+  # dem Agentur-Postfach (IMAP) - respektiert die Nutzungsbedingungen.
+  email-ingestion-worker:
+    build: ./backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.email_ingestion.ingest_job"]
+    env_file: ./backend/.env
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+
+  # OPTIONAL, standardmäßig NICHT gestartet: automatisiertes Website-Scraping.
+  # Erst aktivieren, nachdem die aktuellen Nutzungsbedingungen der Portale
+  # geprüft wurden. Start z.B. mit:
+  #   docker compose --profile scraping up scraper-worker
+  scraper-worker:
+    build: ./backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.scrapers.scheduler"]
+    env_file: ./backend/.env
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+    profiles: ["scraping"]
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
